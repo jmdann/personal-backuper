@@ -194,6 +194,10 @@ fi
 if [ "$SKIP_BREW" = 0 ] && [ -f "$META/Brewfile" ] && have brew; then
   step "Instalando apps e ferramentas (brew bundle) — pode demorar"
   grep -q '^mas ' "$META/Brewfile" && info "apps da App Store exigem login na App Store antes"
+  if grep -qE 'msodbcsql|mssql-tools' "$META/Brewfile"; then
+    warn "os drivers SQL Server da Microsoft pedem para aceitar a licença: quando aparecer a pergunta, digite YES"
+  fi
+  info "se parecer parado, veja se o Terminal está pedindo senha (Password:) ou uma resposta"
   brew bundle install --file="$META/Brewfile" || warn "alguns itens do Brewfile falharam; veja acima"
   cp "$META/Brewfile" "$HOME/Brewfile.migrated"
 fi
@@ -216,6 +220,24 @@ EOF_EXT
     info "lista de todas as extensões (com link da Web Store): ~/chrome-extensions.migrated.tsv"
   fi
 fi
+
+# oh-my-zsh: o backup leva só ~/.oh-my-zsh/custom; se o .zshrc usa o framework, instala.
+if grep -q 'oh-my-zsh.sh' "$HOME/.zshrc" 2>/dev/null && [ ! -f "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]; then
+  step "oh-my-zsh"
+  tmp_omz="$WORK/ohmyzsh"
+  if git clone -q --depth 1 https://github.com/ohmyzsh/ohmyzsh.git "$tmp_omz"; then
+    if [ -d "$HOME/.oh-my-zsh/custom" ]; then
+      cp -R "$HOME/.oh-my-zsh/custom/." "$tmp_omz/custom/"
+    fi
+    rm -rf "$HOME/.oh-my-zsh"
+    mv "$tmp_omz" "$HOME/.oh-my-zsh"
+    ok "oh-my-zsh instalado (com seus plugins/temas de custom/)"
+  else
+    warn "não consegui instalar o oh-my-zsh; veja https://ohmyz.sh"
+  fi
+fi
+# Plugins/temas de terceiros em custom/ que são repositórios git (ex.: powerlevel10k)
+# podem ter vindo vazios; o zshrc avisa ao abrir o Terminal.
 
 step "Ferramentas de linguagem"
 install_list() { # <arquivo> <comando...>
