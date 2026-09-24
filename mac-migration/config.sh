@@ -2,11 +2,13 @@
 # Configuração da migração. Edite à vontade antes de rodar backup.sh.
 # Todos os caminhos são relativos ao $HOME. Caminhos inexistentes são ignorados.
 
-# Destino padrão do backup (pode ser sobrescrito por argumento/variável de ambiente):
+# Destino padrão do backup: uma pasta no iCloud Drive. Pode ser sobrescrito por
+# argumento ou variável de ambiente com:
 #   s3://meu-bucket/mac-migration   (AWS S3, ou R2/MinIO via AWS_ENDPOINT_URL)
 #   gs://meu-bucket/mac-migration   (Google Cloud Storage)
 #   /Volumes/HD-Externo/migracao    (diretório local / disco externo)
-MIGRATION_DEST="${MIGRATION_DEST:-}"
+ICLOUD_DIR="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+MIGRATION_DEST="${MIGRATION_DEST:-$ICLOUD_DIR/mac-migration}"
 
 # Validade (segundos) da URL pré-assinada gerada para S3. Máximo de 7 dias (604800).
 PRESIGN_EXPIRES="${PRESIGN_EXPIRES:-604800}"

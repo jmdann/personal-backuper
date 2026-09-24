@@ -4,7 +4,7 @@
 #
 # Uso: ./backup.sh [destino]
 #   destino: s3://bucket/prefixo | gs://bucket/prefixo | /caminho/local
-#            (padrão: $MIGRATION_DEST ou config.sh)
+#            (padrão: pasta mac-migration no iCloud Drive, veja config.sh)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -38,6 +38,9 @@ case "$(dest_kind "$DEST")" in
   s3) have aws || die "aws cli não encontrado (brew install awscli)"
       aws sts get-caller-identity >/dev/null || die "aws cli sem credenciais válidas" ;;
   gs) have gcloud || die "gcloud não encontrado (brew install --cask google-cloud-sdk)" ;;
+esac
+case "$DEST" in
+  "$ICLOUD_DIR"*) [ -d "$ICLOUD_DIR" ] || die "iCloud Drive não encontrado. Ative em Ajustes do Sistema > [seu nome] > iCloud > iCloud Drive." ;;
 esac
 ok "ok (destino: $DEST)"
 
@@ -164,9 +167,19 @@ remote_put "$OUT.sha256" "$DEST" >/dev/null
 ok "$URL"
 
 step "Pronto"
-echo "No Mac NOVO, clone este repositório e rode:"
-echo
-echo "    ./restore.sh $URL"
+case "$DEST" in
+  "$ICLOUD_DIR"*)
+    warn "o iCloud envia o arquivo em segundo plano. Antes de apagar/formatar este Mac, confira no"
+    warn "Finder (iCloud Drive > mac-migration) que o arquivo não mostra mais o ícone de upload."
+    echo
+    echo "No Mac NOVO (com o mesmo Apple ID e iCloud Drive ativo), clone este repositório e rode:"
+    echo
+    echo "    ./restore.sh" ;;
+  *)
+    echo "No Mac NOVO, clone este repositório e rode:"
+    echo
+    echo "    ./restore.sh $URL" ;;
+esac
 if [ "$(dest_kind "$DEST")" = s3 ]; then
   if PRESIGNED="$(aws s3 presign "$URL" --expires-in "$PRESIGN_EXPIRES" 2>/dev/null)"; then
     echo
@@ -178,4 +191,7 @@ if [ "$(dest_kind "$DEST")" = s3 ]; then
   fi
 fi
 echo
-echo "Depois de restaurar, apague do bucket:  ./cleanup.sh $URL"
+case "$DEST" in
+  "$ICLOUD_DIR"*) echo "Depois de restaurar, apague o backup do iCloud:  ./cleanup.sh" ;;
+  *) echo "Depois de restaurar, apague o backup:  ./cleanup.sh $URL" ;;
+esac

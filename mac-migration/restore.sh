@@ -2,8 +2,9 @@
 # Roda no Mac NOVO. Baixa o backup, descriptografa, restaura segredos/dotfiles
 # e reinstala apps e ferramentas.
 #
-# Uso: ./restore.sh <origem> [opções]
+# Uso: ./restore.sh [origem] [opções]
 #   origem: s3://... | gs://... | https://... (URL pré-assinada) | /caminho/arquivo.age
+#           (padrão: backup mais recente na pasta mac-migration do iCloud Drive)
 # Opções:
 #   --skip-brew        não roda `brew bundle`
 #   --clone-repos      re-clona os repositórios git nos mesmos caminhos
@@ -13,6 +14,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=lib.sh
 . "$SCRIPT_DIR/lib.sh"
+# shellcheck source=config.sh
+. "$SCRIPT_DIR/config.sh"
 
 SRC=""; SKIP_BREW=0; CLONE_REPOS=0; IMPORT_DEFAULTS=0
 for arg in "$@"; do
@@ -20,12 +23,16 @@ for arg in "$@"; do
     --skip-brew) SKIP_BREW=1 ;;
     --clone-repos) CLONE_REPOS=1 ;;
     --import-defaults) IMPORT_DEFAULTS=1 ;;
-    -h|--help) sed -n '2,12p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,13p' "$0"; exit 0 ;;
     -*) die "opção desconhecida: $arg" ;;
     *) SRC="$arg" ;;
   esac
 done
-[ -n "$SRC" ] || die "uso: ./restore.sh <s3://...|gs://...|https://...|arquivo.age> [opções]"
+if [ -z "$SRC" ]; then
+  SRC="$(latest_backup_in "$MIGRATION_DEST")" \
+    || die "nenhum backup em $MIGRATION_DEST. Se usou o iCloud Drive, abra-o no Finder e espere sincronizar."
+  info "usando o backup mais recente: $(basename "$SRC")"
+fi
 KIND="$(dest_kind "$SRC")"
 [ "$KIND" != unknown ] || die "origem inválida: $SRC"
 

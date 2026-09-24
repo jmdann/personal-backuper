@@ -71,7 +71,10 @@ remote_get() {
     s3)   have aws || die "aws cli não encontrado"; aws s3 cp --only-show-errors "$src" "$out" ;;
     gs)   have gcloud || die "gcloud não encontrado"; gcloud storage cp "$src" "$out" ;;
     http) curl -fL --progress-bar -o "$out" "$src" ;;
-    file) cp "$(strip_file_scheme "$src")" "$out" ;;
+    file)
+      local f; f="$(strip_file_scheme "$src")"
+      icloud_materialize "$f"
+      cp "$f" "$out" ;;
     *) die "origem não suportada: $src" ;;
   esac
 }
@@ -81,7 +84,9 @@ remote_rm() {
   case "$(dest_kind "$1")" in
     s3)   aws s3 rm "$1" ;;
     gs)   gcloud storage rm "$1" ;;
-    file) rm -f "$(strip_file_scheme "$1")" ;;
+    file)
+      local f; f="$(strip_file_scheme "$1")"
+      rm -f "$f" "$(dirname "$f")/.$(basename "$f").icloud" ;;
     *) die "não sei apagar: $1" ;;
   esac
 }
@@ -91,4 +96,33 @@ make_workdir() {
   d="$(mktemp -d "${TMPDIR:-/tmp}/mac-migration.XXXXXX")"
   chmod 700 "$d"
   printf '%s' "$d"
+}
+
+# Arquivos do iCloud Drive podem existir só na nuvem (placeholder ".<nome>.icloud").
+# Pede o download e espera o arquivo real aparecer.
+icloud_materialize() {
+  local f="$1" ph waited=0
+  [ -f "$f" ] && return 0
+  ph="$(dirname "$f")/.$(basename "$f").icloud"
+  [ -f "$ph" ] || return 0
+  info "baixando do iCloud Drive: $(basename "$f")"
+  if have brctl; then brctl download "$f" >/dev/null 2>&1 || true; fi
+  until [ -f "$f" ]; do
+    [ "$waited" -ge 3600 ] && die "o iCloud não terminou de baixar $f em 1h. Abra a pasta no Finder e tente de novo."
+    sleep 5; waited=$((waited + 5))
+  done
+}
+
+# Imprime o backup mais recente (mac-migration-<host>-<data>.tar.gz.age) de um diretório,
+# incluindo os que ainda estão só na nuvem do iCloud.
+latest_backup_in() {
+  local dir="$1" name
+  [ -d "$dir" ] || return 1
+  name="$(find "$dir" -mindepth 1 -maxdepth 1 -name '*mac-migration-*.tar.gz.age*' 2>/dev/null \
+    | sed -e 's|.*/||' \
+          -n -e 's/^\.\(mac-migration-.*\.tar\.gz\.age\)\.icloud$/\1/p' -e 's/^\(mac-migration-.*\.tar\.gz\.age\)$/\1/p' \
+    | awk '{ s = $0; sub(/\.tar\.gz\.age$/, "", s); print substr(s, length(s) - 14) "\t" $0 }' \
+    | sort | tail -1 | cut -f2)"
+  [ -n "$name" ] || return 1
+  printf '%s/%s\n' "$dir" "$name"
 }

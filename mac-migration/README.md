@@ -2,13 +2,13 @@
 
 Scripts para levar ambiente de desenvolvimento, segredos e apps de um Mac para outro.
 Os segredos saem **criptografados no seu Mac** (com [`age`](https://github.com/FiloSottile/age) e uma senha)
-antes de irem para o bucket. O bucket só vê um blob opaco.
+antes de irem para o **iCloud Drive** (padrão), um disco externo ou um bucket S3/GCS — o destino só vê um blob opaco.
 
 | Script | Onde roda | O que faz |
 | --- | --- | --- |
-| `backup.sh` | Mac antigo | coleta → criptografa → envia para o bucket |
+| `backup.sh` | Mac antigo | coleta → criptografa → salva no iCloud Drive (ou outro destino) |
 | `restore.sh` | Mac novo | baixa → confere sha256 → descriptografa → restaura → reinstala |
-| `cleanup.sh` | qualquer um | apaga o backup do bucket |
+| `cleanup.sh` | qualquer um | apaga o backup do iCloud/bucket |
 | `config.sh` | — | lista do que entra no backup (edite à vontade) |
 
 ## O que é migrado
@@ -28,49 +28,34 @@ antes de irem para o bucket. O bucket só vê um blob opaco.
 - **Documentos, fotos, arquivos grandes:** iCloud Drive, Assistente de Migração ou disco externo.
 - **Licenças de apps e 2FA:** confira manualmente (`~/applications.migrated.txt` lista todos os apps do Mac antigo).
 
-## 1. Preparar o bucket (uma vez)
+## Passo a passo (iCloud Drive — padrão)
 
-Bucket **privado**, com criptografia e expiração automática — mesmo que você esqueça do `cleanup.sh`, o backup some.
+Requisito: **mesmo Apple ID** nos dois Macs, com **iCloud Drive ativado**
+(Ajustes do Sistema › [seu nome] › iCloud › iCloud Drive) e espaço livre no iCloud para o backup
+(normalmente poucos MB; o `backup.sh` mostra o tamanho).
 
-**AWS S3**
-```sh
-BUCKET=meu-mac-migration-$RANDOM
-aws s3api create-bucket --bucket $BUCKET --region us-east-1
-aws s3api put-public-access-block --bucket $BUCKET \
-  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
-aws s3api put-bucket-lifecycle-configuration --bucket $BUCKET --lifecycle-configuration \
-  '{"Rules":[{"ID":"expira","Status":"Enabled","Filter":{},"Expiration":{"Days":14}}]}'
-```
-(Cloudflare R2 / MinIO também funcionam: exporte `AWS_ENDPOINT_URL=...`.)
-
-**Google Cloud Storage**
-```sh
-BUCKET=meu-mac-migration-$RANDOM
-gcloud storage buckets create gs://$BUCKET --location=southamerica-east1 \
-  --uniform-bucket-level-access --public-access-prevention
-echo '{"rule":[{"action":{"type":"Delete"},"condition":{"age":14}}]}' > /tmp/lc.json
-gcloud storage buckets update gs://$BUCKET --lifecycle-file=/tmp/lc.json
-```
-
-## 2. No Mac antigo
+**1. No Mac antigo**
 
 ```sh
 git clone <este-repo> && cd <este-repo>/mac-migration
 # (opcional) edite config.sh: EXTRA_PATHS, DEV_DIRS...
-./backup.sh s3://$BUCKET/mac-migration      # ou gs://$BUCKET/mac-migration, ou /Volumes/Disco/migracao
+./backup.sh
 ```
 
-O script pede uma **senha de criptografia** — guarde-a no gerenciador de senhas; sem ela não há restauração.
-No fim ele imprime o comando exato para rodar no Mac novo e, no S3, uma **URL pré-assinada** (válida por 7 dias)
-que dispensa configurar credenciais AWS no Mac novo — resolvendo o problema do ovo e da galinha
-(as credenciais da AWS estão *dentro* do backup).
+- O script pede uma **senha de criptografia**. Guarde-a no gerenciador de senhas: sem ela não há restauração.
+- O arquivo vai para `iCloud Drive/mac-migration/`. O iCloud envia em segundo plano: **antes de apagar ou
+  formatar o Mac antigo**, confira no Finder que o arquivo não mostra mais o ícone de upload.
 
-## 3. No Mac novo
+**2. No Mac novo**
 
 ```sh
 git clone <este-repo> && cd <este-repo>/mac-migration   # o git vem com as Command Line Tools
-./restore.sh 'https://...url-pre-assinada...'            # ou s3://... / gs://... / arquivo local
+./restore.sh
 ```
+
+Sem argumentos, ele pega o backup mais recente da pasta do iCloud. Se o arquivo ainda estiver só na nuvem,
+o script pede o download ao iCloud e espera. Se a pasta ainda não apareceu, abra o iCloud Drive no Finder
+e aguarde a sincronização.
 
 Opções:
 
@@ -83,11 +68,36 @@ seria sobrescrito em `~/.migration-previous-<data>/`, corrige permissões (`~/.s
 chaves GPG, roda o `Brewfile` e reinstala extensões e pacotes globais. Os arquivos temporários
 descriptografados ficam num diretório `mktemp` com permissão 700 e são apagados ao final.
 
-## 4. Limpeza
+**3. Limpeza**
 
 ```sh
-./cleanup.sh s3://$BUCKET/mac-migration/mac-migration-<host>-<data>.tar.gz.age
+./cleanup.sh     # apaga o backup mais recente do iCloud (pede confirmação)
 ```
 
-Depois de conferir que está tudo certo no Mac novo, apague o bucket inteiro se ele era só para isso.
 Se algum segredo pode ter vazado no caminho, rotacione-o (chaves AWS, tokens do GitHub etc.).
+
+## Outros destinos
+
+Passe o destino como argumento para o `backup.sh` e o caminho/URL do arquivo para `restore.sh`/`cleanup.sh`:
+
+- **Disco externo:** `./backup.sh /Volumes/MeuHD/migracao`
+- **AWS S3** (ou R2/MinIO com `AWS_ENDPOINT_URL`): `./backup.sh s3://$BUCKET/mac-migration`.
+  Além do caminho, o script imprime uma **URL pré-assinada** (7 dias) que dispensa credenciais AWS no Mac novo.
+- **Google Cloud Storage:** `./backup.sh gs://$BUCKET/mac-migration`
+
+Para S3/GCS, use um bucket privado com expiração automática:
+
+```sh
+# S3
+aws s3api create-bucket --bucket $BUCKET --region us-east-1
+aws s3api put-public-access-block --bucket $BUCKET \
+  --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+aws s3api put-bucket-lifecycle-configuration --bucket $BUCKET --lifecycle-configuration \
+  '{"Rules":[{"ID":"expira","Status":"Enabled","Filter":{},"Expiration":{"Days":14}}]}'
+
+# GCS
+gcloud storage buckets create gs://$BUCKET --location=southamerica-east1 \
+  --uniform-bucket-level-access --public-access-prevention
+echo '{"rule":[{"action":{"type":"Delete"},"condition":{"age":14}}]}' > /tmp/lc.json
+gcloud storage buckets update gs://$BUCKET --lifecycle-file=/tmp/lc.json
+```
