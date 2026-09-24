@@ -50,6 +50,7 @@ step "Inventário do sistema"
   echo "created_at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo "host: $HOST"
   echo "user: $(id -un)"
+  echo "home: $HOME"
   echo "arch: $(uname -m)"
   have sw_vers && sw_vers | sed 's/^/macos_/'
 } > "$META/manifest.txt"
@@ -222,6 +223,31 @@ step "Segredos e dotfiles"
 { lines "$HOME_PATHS"; lines "$EXTRA_PATHS"; } | while IFS= read -r p; do
   if [ -e "$HOME/$p" ]; then echo "$p"; fi
 done >> "$LIST"
+sort -u -o "$LIST" "$LIST"
+
+# Pastas do $HOME citadas nos dotfiles (ex.: `source ~/.minha-ferramenta/bin/x`) que não
+# estão no backup: pergunta se deve incluir cada uma.
+IGNORE_REFS=' Library Applications Desktop Documents Downloads Movies Music Pictures Public
+ .cache .local .config .npm .nvm .pyenv .rbenv .rustup .cargo .bun .deno .sdkman .volta .asdf
+ .oh-my-zsh .zsh .zinit .antigen .docker .orbstack .rd .colima .vscode .cursor go '
+for d in $(lines "$DEV_DIRS"); do IGNORE_REFS="$IGNORE_REFS ${d%%/*} "; done
+REFS="$(while IFS= read -r p; do
+          f="$HOME/$p"
+          case "$p" in Library/*|*/.env*|*.env) continue ;; esac
+          if ! [ -f "$f" ] || ! grep -Iq . "$f" 2>/dev/null; then continue; fi
+          HOME_RE="$HOME" perl -ne 'while (m{(?:\$HOME|\$\{HOME\}|~|\Q$ENV{HOME_RE}\E)/([A-Za-z0-9._-]+)}g) { print "$1\n" }' "$f"
+        done < "$LIST" | sort -u)"
+for r in $REFS; do
+  case "$IGNORE_REFS" in *" $r "*) continue ;; esac
+  [ -e "$HOME/$r" ] || continue
+  grep -qxF "$r" "$LIST" && continue
+  grep -q "^$r/" "$LIST" && continue
+  if confirm "Seus dotfiles usam ~/$r ($(du -sh "$HOME/$r" 2>/dev/null | awk '{print $1}')), que não está no backup. Incluir?"; then
+    echo "$r" >> "$LIST"
+  else
+    info "para sempre incluir, adicione '$r' em EXTRA_PATHS no config.sh"
+  fi
+done
 sort -u -o "$LIST" "$LIST"
 cp "$LIST" "$META/files.txt"
 sed 's/^/      ~\//' "$LIST"

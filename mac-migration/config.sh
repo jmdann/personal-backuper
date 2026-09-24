@@ -54,6 +54,7 @@ HOME_PATHS='
 .config/kitty
 .config/ghostty
 .wezterm.lua
+.claude-switch
 .claude/settings.json
 .claude/CLAUDE.md
 .claude/commands

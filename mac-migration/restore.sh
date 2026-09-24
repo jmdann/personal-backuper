@@ -130,6 +130,26 @@ if ! tar -C "$HOME" -xf "$BUNDLE/home.tar" 2> "$WORK/tar-errors.txt"; then
 fi
 ok "$(wc -l < "$META/files.txt" | tr -d ' ') itens restaurados"
 
+# Se o usuário mudou (ex.: /Users/user -> /Users/jmdann), corrige caminhos absolutos
+# escritos nos dotfiles e configs restaurados (só arquivos de texto; o Chrome fica de fora).
+OLD_HOME="$(sed -n 's/^home: //p' "$META/manifest.txt")"
+[ -n "$OLD_HOME" ] || OLD_HOME="/Users/$(sed -n 's/^user: //p' "$META/manifest.txt")"
+if [ "$OLD_HOME" != "/Users/" ] && [ "$OLD_HOME" != "$HOME" ]; then
+  info "corrigindo caminhos $OLD_HOME -> $HOME"
+  n=0
+  while IFS= read -r p; do
+    case "$p" in 'Library/Application Support/Google/Chrome'*) continue ;; esac
+    [ -e "$HOME/$p" ] || continue
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      OLD="$OLD_HOME" NEW="$HOME" perl -pi -e 's{\Q$ENV{OLD}\E(?![\w.-])}{$ENV{NEW}}g' "$f" && n=$((n + 1))
+    done <<EOF_FIX
+$(grep -rIlF -- "$OLD_HOME" "$HOME/$p" 2>/dev/null)
+EOF_FIX
+  done < "$META/files.txt"
+  ok "caminhos corrigidos em $n arquivo(s)"
+fi
+
 info "ajustando permissões"
 if [ -d "$HOME/.ssh" ]; then
   chmod 700 "$HOME/.ssh"
