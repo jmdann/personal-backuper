@@ -91,16 +91,17 @@ remote_rm() {
   esac
 }
 
-chrome_running() { pgrep -x "Google Chrome" >/dev/null 2>&1; }
+app_running() { pgrep -x "$1" >/dev/null 2>&1; }
 
-# Espera o usuário fechar o Chrome (os bancos SQLite do perfil ficam inconsistentes com ele aberto).
-wait_chrome_closed() {
-  chrome_running || return 0
-  warn "o Google Chrome está aberto. Feche-o com Cmd+Q (não só a janela)."
-  until ! chrome_running; do
-    confirm "Chrome fechado?" || die "abortado"
+# Espera o usuário fechar um app (os dados dele ficam inconsistentes se copiados com ele aberto).
+wait_app_closed() { # <nome-do-processo>
+  app_running "$1" || return 0
+  warn "o $1 está aberto. Feche-o com Cmd+Q (não só a janela)."
+  until ! app_running "$1"; do
+    confirm "$1 fechado?" || die "abortado"
   done
 }
+wait_chrome_closed() { wait_app_closed "Google Chrome"; }
 
 make_workdir() {
   local d

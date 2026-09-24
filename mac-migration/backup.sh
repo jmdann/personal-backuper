@@ -64,9 +64,10 @@ fi
 
 # Apps instalados fora do Homebrew que valem garantir no Mac novo.
 if [ -f "$META/Brewfile" ]; then
-  for pair in "1Password.app:1password" "1Password 7.app:1password@7"; do
+  for pair in "1Password.app:1password" "1Password 7.app:1password@7" "Orca.app:stablyai/orca/orca"; do
     app="${pair%%:*}"; cask="${pair#*:}"
-    if [ -d "/Applications/$app" ] && ! grep -q "^cask \"$cask\"" "$META/Brewfile"; then
+    if [ -d "/Applications/$app" ] && ! grep -q "^cask \"\(.*/\)\{0,1\}${cask##*/}\"" "$META/Brewfile"; then
+      case "$cask" in */*/*) printf 'tap "%s"\n' "${cask%/*}" >> "$META/Brewfile" ;; esac
       printf 'cask "%s"\n' "$cask" >> "$META/Brewfile"
       ok "$app adicionado ao Brewfile"
     fi
@@ -242,6 +243,26 @@ PYEXT
     ok "extensões: $(cut -f2 "$META/chrome-extensions.tsv" | sort -u | wc -l | tr -d ' ') (lista em chrome-extensions.tsv)"
   fi
   ok "perfis: $(find "$HOME/$CHROME_DIR" -maxdepth 2 -name Preferences -path '*/*/Preferences' | wc -l | tr -d ' ')"
+fi
+
+if [ -d "$HOME/$ORCA_DIR" ] || [ -d "$HOME/.orca" ]; then
+  step "Orca"
+  wait_app_closed Orca
+  # Como o Chrome, o Orca (Electron) criptografa credenciais com uma chave do Keychain.
+  if have security; then
+    acct="$(security find-generic-password -s 'Orca Safe Storage' 2>/dev/null | sed -n 's/.*"acct"<blob>="\(.*\)"$/\1/p')"
+    if [ -n "$acct" ]; then
+      info "o macOS vai pedir acesso ao item 'Orca Safe Storage' do Keychain: digite sua senha e clique em Permitir"
+      if key="$(security find-generic-password -w -s 'Orca Safe Storage' -a "$acct" 2>/dev/null)"; then
+        (umask 077; printf '%s' "$key" > "$META/orca-safe-storage.key"; printf '%s' "$acct" > "$META/orca-safe-storage.acct")
+        ok "chave do Orca Safe Storage"
+      else
+        warn "sem acesso à chave; no Mac novo talvez seja preciso reconectar integrações do Orca (Linear, Jira...)"
+      fi
+      unset key
+    fi
+  fi
+  ok "configurações do Orca ($(du -sh "$HOME/$ORCA_DIR" 2>/dev/null | awk '{print $1}') em Application Support, antes de excluir caches)"
 fi
 
 step "Segredos e dotfiles"

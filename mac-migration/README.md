@@ -27,6 +27,9 @@ antes de irem para o **iCloud Drive** (padrão), um disco externo ou um bucket S
 - **Extensões do Chrome:** vão com os perfis. Além disso, as de `CHROME_ESSENTIAL_EXTENSIONS` no `config.sh`
   (por padrão o **1Password**) são instaladas pela Chrome Web Store no Mac novo mesmo se a cópia do perfil falhar;
   o Chrome pede para ativá-las. A lista completa, com links, fica em `~/chrome-extensions.migrated.tsv`.
+- **Orca** ([stablyai/orca](https://github.com/stablyai/orca)): configurações e estado (`~/Library/Application Support/Orca`,
+  sem caches), credenciais de integrações (`~/.orca`) e a chave `Orca Safe Storage` do Keychain. Os caminhos com o
+  usuário antigo são corrigidos no restore. O app entra no `Brewfile` (`stablyai/orca/orca`).
 - **App do 1Password:** se estiver em `/Applications` mas não veio do Homebrew, entra no `Brewfile` mesmo assim.
 - **App Senhas / iCloud Keychain:** não vai no arquivo; sincroniza pelo iCloud. O backup verifica se a
   sincronização está ativa e avisa se não estiver.

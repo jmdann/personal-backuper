@@ -104,6 +104,21 @@ if grep -qxF 'Library/Application Support/Google/Chrome' "$META/files.txt"; then
   fi
 fi
 
+if grep -qxF "$ORCA_DIR" "$META/files.txt" || grep -qxF .orca "$META/files.txt"; then
+  step "Orca"
+  wait_app_closed Orca
+  if [ -f "$META/orca-safe-storage.key" ] && have security; then
+    acct="$(cat "$META/orca-safe-storage.acct")"
+    security delete-generic-password -s 'Orca Safe Storage' -a "$acct" >/dev/null 2>&1 || true
+    if security add-generic-password -s 'Orca Safe Storage' -a "$acct" \
+         -w "$(cat "$META/orca-safe-storage.key")" -T '/Applications/Orca.app'; then
+      ok "chave do Orca Safe Storage no Keychain"
+    else
+      warn "não consegui gravar a chave; talvez seja preciso reconectar integrações do Orca"
+    fi
+  fi
+fi
+
 step "Restaurando segredos e dotfiles em $HOME"
 # Guarda uma cópia do que já existe. O macOS pode negar alguns arquivos (atributos
 # protegidos, privacidade): nesse caso avisa e segue, sem abortar a restauração.

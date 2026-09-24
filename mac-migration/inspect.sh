@@ -40,6 +40,7 @@ info "Repositórios git:    $(count "$META/repos.tsv")"
 info "Crontab:             $([ -s "$META/crontab.txt" ] && echo sim || echo não)"
 info "Chaves GPG:          $([ -f "$META/gpg-secret-keys.asc" ] && echo sim || echo não)"
 info "Chave do Chrome:     $([ -f "$META/chrome-safe-storage.key" ] && echo sim || echo não)"
+info "Chave do Orca:       $([ -f "$META/orca-safe-storage.key" ] && echo sim || echo não)"
 if [ -s "$META/chrome-extensions.tsv" ]; then
   step "Extensões do Chrome"
   awk -F'\t' '{ printf "    %-20s %s\n", $1, $3 }' "$META/chrome-extensions.tsv"

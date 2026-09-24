@@ -88,6 +88,9 @@ CHROME_ESSENTIAL_EXTENSIONS='
 aeblfdkhhhdcdjpifhhbdiojplfjncoa 1Password
 '
 
+# Orca (ADE da Stably): configurações/estado e credenciais. Os worktrees ficam em ~/orca/workspaces.
+ORCA_DIR='Library/Application Support/Orca'
+
 # Padrões excluídos do arquivo (sockets, caches, logs).
 EXCLUDES='
 *.sock
@@ -128,6 +131,22 @@ Google/Chrome/Snapshots
 Google/Chrome/SingletonLock
 Google/Chrome/SingletonSocket
 Google/Chrome/SingletonCookie
+Orca/Cache
+Orca/Code Cache
+Orca/GPUCache
+Orca/DawnGraphiteCache
+Orca/DawnWebGPUCache
+Orca/Service Worker/CacheStorage
+Orca/Service Worker/ScriptCache
+Orca/Partitions/*/Cache
+Orca/Partitions/*/Code Cache
+Orca/Partitions/*/GPUCache
+Orca/Partitions/*/Service Worker/CacheStorage
+Orca/Crashpad
+Orca/logs
+Orca/SingletonLock
+Orca/SingletonSocket
+Orca/SingletonCookie
 '
 
 # Diretórios onde ficam seus projetos. Neles o backup:
