@@ -136,12 +136,23 @@ LIST="$WORK/paths.txt"
 : > "$META/repos.tsv"
 : > "$META/git-warnings.txt"
 
+# Argumentos do find para pular DEV_EXCLUDES (caminhos relativos ao $HOME, como o find vê).
+SKIP_ARGS=(-name node_modules)
+while IFS= read -r x; do
+  [ -n "$x" ] && SKIP_ARGS+=(-o -path "$x")
+done <<EOF_SKIP
+$(lines "$DEV_EXCLUDES")
+EOF_SKIP
+if [ "${#SKIP_ARGS[@]}" -gt 2 ]; then
+  info "ignorando: $(lines "$DEV_EXCLUDES" | tr '\n' ' ')"
+fi
+
 cd "$HOME"
 while IFS= read -r d; do
   [ -d "$d" ] || continue
   info "varrendo ~/$d"
   # Repositórios git
-  find "$d" -maxdepth "$DEV_MAX_DEPTH" \( -name node_modules -o -name .venv -o -name vendor \) -prune \
+  find "$d" -maxdepth "$DEV_MAX_DEPTH" \( "${SKIP_ARGS[@]}" -o -name .venv -o -name vendor \) -prune \
        -o -type d -name .git -print -prune 2>/dev/null | while IFS= read -r g; do
     repo="${g%/.git}"
     remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
@@ -155,7 +166,7 @@ while IFS= read -r d; do
   done
   # Arquivos .env (normalmente fora do git)
   find "$d" -maxdepth "$DEV_MAX_DEPTH" \
-       \( -name node_modules -o -name .git -o -name .venv -o -name venv -o -name vendor -o -name .terraform \) -prune \
+       \( "${SKIP_ARGS[@]}" -o -name .git -o -name .venv -o -name venv -o -name vendor -o -name .terraform \) -prune \
        -o -type f \( -name '.env' -o -name '.env.*' -o -name '*.env' -o -name '.envrc' \) \
        ! -name '*.example' ! -name '*.sample' ! -name '*.template' -print 2>/dev/null >> "$LIST"
 done <<EOF_DIRS

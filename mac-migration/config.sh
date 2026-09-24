@@ -142,6 +142,18 @@ Developer
 Documents/GitHub
 '
 
+# Pastas dentro de DEV_DIRS que ficam totalmente de fora (nem repositórios, nem .env).
+DEV_EXCLUDES='
+orca/glue
+orca/workspaces
+orca/ando
+orca/ando1
+orca/happy-widget
+orca/happyCaseStudy
+orca/test-thomsonreuters
+orca/AgentGrade
+'
+
 # Profundidade máxima de busca dentro de DEV_DIRS.
 DEV_MAX_DEPTH="${DEV_MAX_DEPTH:-5}"
 
