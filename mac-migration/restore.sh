@@ -111,8 +111,9 @@ tar -tf "$BUNDLE/home.tar" | while IFS= read -r f; do
   case "$f" in */) continue ;; esac
   if [ -f "$HOME/$f" ] || [ -L "$HOME/$f" ]; then
     mkdir -p "$PREV/$(dirname "$f")" 2>/dev/null || true
-    if ! cp -p "$HOME/$f" "$PREV/$f" 2>/dev/null && ! cp "$HOME/$f" "$PREV/$f" 2>/dev/null; then
-      warn "sem cópia prévia (acesso negado pelo macOS): ~/$f"
+    # -R -P: copia links simbólicos como links (ex.: skills do Claude apontando para pastas).
+    if ! cp -RPp "$HOME/$f" "$PREV/$f" 2>/dev/null && ! cp -RP "$HOME/$f" "$PREV/$f" 2>/dev/null; then
+      warn "sem cópia prévia (o macOS negou a cópia): ~/$f"
     fi
   fi
 done
