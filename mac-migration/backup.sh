@@ -257,21 +257,23 @@ if [ -d "$HOME/$ORCA_DIR" ] || [ -d "$HOME/.orca" ]; then
   wait_app_closed Orca
   # Como o Chrome, o Orca (Electron) criptografa credenciais com uma chave do Keychain.
   if have security; then
-    info "procurando a chave 'Orca Safe Storage' no Keychain..."
-    info "(se o macOS abrir uma janela pedindo senha, ela pode estar atrás das outras janelas)"
-    acct="$(security find-generic-password -s 'Orca Safe Storage' 2>/dev/null | sed -n 's/.*"acct"<blob>="\(.*\)"$/\1/p')"
+    info "procurando a chave 'Orca Safe Storage' no Keychain (até 60s; se pedir senha, clique em Permitir)..."
+    acct=""
+    # O Electron grava a chave com a conta "<App> Key"; versões antigas usam só "<App>".
+    for a in "Orca Key" "Orca"; do
+      rc=0
+      key="$(with_timeout 60 security find-generic-password -w -s 'Orca Safe Storage' -a "$a")" || rc=$?
+      if [ "$rc" = 0 ] && [ -n "$key" ]; then acct="$a"; break; fi
+      if [ "$rc" = 124 ]; then warn "o Keychain não respondeu; seguindo sem a chave do Orca"; break; fi
+    done
     if [ -n "$acct" ]; then
-      info "o macOS vai pedir acesso ao item 'Orca Safe Storage' do Keychain: digite sua senha e clique em Permitir"
-      if key="$(security find-generic-password -w -s 'Orca Safe Storage' -a "$acct" 2>/dev/null)"; then
-        (umask 077; printf '%s' "$key" > "$META/orca-safe-storage.key"; printf '%s' "$acct" > "$META/orca-safe-storage.acct")
-        ok "chave do Orca Safe Storage"
-      else
-        warn "sem acesso à chave; no Mac novo talvez seja preciso reconectar integrações do Orca (Linear, Jira...)"
-      fi
-      unset key
+      (umask 077; printf '%s' "$key" > "$META/orca-safe-storage.key"; printf '%s' "$acct" > "$META/orca-safe-storage.acct")
+      ok "chave do Orca Safe Storage"
+    else
+      info "sem a chave do Orca: no Mac novo talvez seja preciso reconectar integrações (Linear, Jira...)"
     fi
+    unset key
   fi
-  [ -n "${acct:-}" ] || info "o Orca não tem chave no Keychain (nada a levar)"
   ok "configurações do Orca"
 fi
 

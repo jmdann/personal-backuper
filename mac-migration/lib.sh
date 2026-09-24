@@ -91,6 +91,24 @@ remote_rm() {
   esac
 }
 
+# with_timeout <segundos> <comando...>: roda o comando e o mata se passar do tempo (código 124).
+with_timeout() {
+  local secs="$1" out pid i=0 rc
+  shift
+  out="$(mktemp "${TMPDIR:-/tmp}/wt.XXXXXX")"
+  "$@" > "$out" 2>/dev/null </dev/null &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$i" -ge "$secs" ]; then
+      kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; rm -f "$out"; return 124
+    fi
+    sleep 1; i=$((i + 1))
+  done
+  wait "$pid"; rc=$?
+  cat "$out"; rm -f "$out"
+  return "$rc"
+}
+
 app_running() { pgrep -x "$1" >/dev/null 2>&1; }
 
 # Espera o usuário fechar um app (os dados dele ficam inconsistentes se copiados com ele aberto).
