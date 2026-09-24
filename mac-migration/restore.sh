@@ -278,6 +278,10 @@ fi
 if [ -s "$META/repos.tsv" ]; then
   cp "$META/repos.tsv" "$HOME/repos.migrated.tsv"
   if [ "$CLONE_REPOS" = 1 ]; then
+    # Aplica depois de restaurar o .gitconfig, que sobrescreveria a configuração.
+    if have gh && [ -n "$(lines "$GITHUB_ACCOUNTS")" ]; then
+      "$SCRIPT_DIR/github-accounts.sh" || warn "não consegui configurar as contas do GitHub"
+    fi
     step "Clonando repositórios"
     while IFS="$(printf '\t')" read -r path remote branch; do
       [ "$remote" = "<sem-remote>" ] && { warn "sem remote: ~/$path"; continue; }

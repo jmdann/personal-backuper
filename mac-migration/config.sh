@@ -184,6 +184,13 @@ orca/AgentGrade
 DEV_ROOT_CONFIG="${DEV_ROOT_CONFIG:-1}"
 DEV_ROOT_MAX_MB="${DEV_ROOT_MAX_MB:-100}"
 
+# Conta do GitHub (logada no `gh`) usada por organização: "<organização> <usuário>".
+# "*" é a conta padrão. Aplicado pelo github-accounts.sh (o restore roda antes de clonar).
+GITHUB_ACCOUNTS='
+lettrlabs joao-dannemann-LettrLabs
+* jmdann
+'
+
 # Profundidade máxima de busca dentro de DEV_DIRS.
 DEV_MAX_DEPTH="${DEV_MAX_DEPTH:-5}"
 

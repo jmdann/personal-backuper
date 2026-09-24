@@ -9,6 +9,7 @@ antes de irem para o **iCloud Drive** (padrão), um disco externo ou um bucket S
 | `backup.sh` | Mac antigo | coleta → criptografa → salva no iCloud Drive (ou outro destino) |
 | `restore.sh` | Mac novo | baixa → confere sha256 → descriptografa → restaura → reinstala |
 | `inspect.sh` | qualquer um | abre o backup e lista o conteúdo, sem alterar nada |
+| `github-accounts.sh` | Mac novo | faz o git usar a conta certa do GitHub por organização (`GITHUB_ACCOUNTS` no `config.sh`) |
 | `cleanup.sh` | qualquer um | apaga o backup do iCloud/bucket |
 | `config.sh` | — | lista do que entra no backup (edite à vontade) |
 
