@@ -71,6 +71,11 @@ Library/Application Support/Cursor/User/snippets
 EXTRA_PATHS='
 '
 
+# Google Chrome: leva todos os perfis (favoritos, extensões, histórico, abas,
+# configurações, senhas e cookies locais) sem os caches. Use 0 para desligar.
+CHROME_PROFILES="${CHROME_PROFILES:-1}"
+CHROME_DIR='Library/Application Support/Google/Chrome'
+
 # Padrões excluídos do arquivo (sockets, caches, logs).
 EXCLUDES='
 *.sock
@@ -83,6 +88,27 @@ EXCLUDES='
 .kube/cache
 .kube/http-cache
 .DS_Store
+Google/Chrome/*/Cache
+Google/Chrome/*/Code Cache
+Google/Chrome/*/GPUCache
+Google/Chrome/*/DawnGraphiteCache
+Google/Chrome/*/DawnWebGPUCache
+Google/Chrome/*/Service Worker/CacheStorage
+Google/Chrome/*/Service Worker/ScriptCache
+Google/Chrome/*/File System
+Google/Chrome/*/blob_storage
+Google/Chrome/Crashpad
+Google/Chrome/GrShaderCache
+Google/Chrome/GraphiteDawnCache
+Google/Chrome/ShaderCache
+Google/Chrome/component_crx_cache
+Google/Chrome/extensions_crx_cache
+Google/Chrome/OptimizationGuidePredictionModels
+Google/Chrome/Safe Browsing
+Google/Chrome/Snapshots
+Google/Chrome/SingletonLock
+Google/Chrome/SingletonSocket
+Google/Chrome/SingletonCookie
 '
 
 # Diretórios onde ficam seus projetos. Neles o backup:

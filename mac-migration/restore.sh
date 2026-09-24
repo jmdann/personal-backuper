@@ -90,6 +90,20 @@ META="$BUNDLE/meta"
 sed 's/^/    /' "$META/manifest.txt"
 
 # ---------------------------------------------------------------------------
+if grep -qxF 'Library/Application Support/Google/Chrome' "$META/files.txt"; then
+  step "Google Chrome"
+  wait_chrome_closed
+  if [ -f "$META/chrome-safe-storage.key" ] && have security; then
+    security delete-generic-password -s 'Chrome Safe Storage' -a 'Chrome' >/dev/null 2>&1 || true
+    if security add-generic-password -s 'Chrome Safe Storage' -a 'Chrome' \
+         -w "$(cat "$META/chrome-safe-storage.key")" -T '/Applications/Google Chrome.app'; then
+      ok "chave do Chrome Safe Storage no Keychain"
+    else
+      warn "não consegui gravar a chave; senhas/cookies locais do Chrome não vão abrir"
+    fi
+  fi
+fi
+
 step "Restaurando segredos e dotfiles em $HOME"
 tar -tf "$BUNDLE/home.tar" | while IFS= read -r f; do
   case "$f" in */) continue ;; esac

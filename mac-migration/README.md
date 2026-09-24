@@ -19,12 +19,18 @@ antes de irem para o **iCloud Drive** (padrão), um disco externo ou um bucket S
 - **Dotfiles:** zsh/bash/fish, oh-my-zsh custom, p10k, starship, git, vim/nvim, tmux, terminais, Claude Code, settings do VS Code/Cursor.
 - **Inventário para reinstalar:** `Brewfile` (fórmulas, casks, taps, App Store via `mas`, extensões VS Code),
   extensões VS Code/Cursor, pacotes globais npm/pipx/uv/cargo, crontab, preferências do Dock/Finder/Trackpad.
+- **Google Chrome:** todos os perfis (favoritos, extensões e seus dados, histórico, abas, configurações), sem os caches.
+  Também leva a chave `Chrome Safe Storage` do Keychain, para que **senhas e cookies salvos localmente** abram no Mac novo.
+  O macOS pede sua senha para liberar essa chave no backup. Os dois scripts pedem para fechar o Chrome (Cmd+Q) antes.
+  Para desligar: `CHROME_PROFILES=0 ./backup.sh`.
 - **Repositórios git:** lista caminho + remote para re-clonar no mesmo lugar (`--clone-repos`).
   O backup **avisa** sobre repositórios com mudanças não commitadas, commits não enviados ou stash e pede confirmação.
 
 ### O que NÃO é migrado (faça à parte)
 
-- **Keychain / senhas:** use iCloud Keychain ou seu gerenciador de senhas.
+- **Keychain / senhas:** use iCloud Keychain ou seu gerenciador de senhas (exceto a chave do Chrome, citada acima).
+- **Chrome:** alguns sites (principalmente Google) podem pedir login de novo, porque amarram a sessão ao
+  aparelho. Se você usa a sincronização do Chrome com a conta Google, ela continua sendo a garantia principal.
 - **Documentos, fotos, arquivos grandes:** iCloud Drive, Assistente de Migração ou disco externo.
 - **Licenças de apps e 2FA:** confira manualmente (`~/applications.migrated.txt` lista todos os apps do Mac antigo).
 

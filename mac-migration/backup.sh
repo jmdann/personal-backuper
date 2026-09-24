@@ -139,6 +139,25 @@ if [ -s "$META/git-warnings.txt" ]; then
 fi
 
 # ---------------------------------------------------------------------------
+if [ "$CHROME_PROFILES" = 1 ] && [ -d "$HOME/$CHROME_DIR" ]; then
+  step "Perfis do Google Chrome"
+  wait_chrome_closed
+  echo "$CHROME_DIR" >> "$LIST"
+  # Senhas e cookies do Chrome são criptografados com uma chave guardada no Keychain.
+  # Sem levar a chave, eles não abrem no Mac novo.
+  if have security; then
+    info "o macOS vai pedir acesso ao item 'Chrome Safe Storage' do Keychain: digite sua senha e clique em Permitir"
+    if key="$(security find-generic-password -w -s 'Chrome Safe Storage' -a 'Chrome' 2>/dev/null)"; then
+      (umask 077; printf '%s' "$key" > "$META/chrome-safe-storage.key")
+      ok "chave do Chrome Safe Storage"
+    else
+      warn "sem acesso à chave; no Mac novo senhas e cookies locais do Chrome não serão recuperados"
+    fi
+    unset key
+  fi
+  ok "perfis: $(find "$HOME/$CHROME_DIR" -maxdepth 2 -name Preferences -path '*/*/Preferences' | wc -l | tr -d ' ')"
+fi
+
 step "Segredos e dotfiles"
 { lines "$HOME_PATHS"; lines "$EXTRA_PATHS"; } | while IFS= read -r p; do
   if [ -e "$HOME/$p" ]; then echo "$p"; fi

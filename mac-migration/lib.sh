@@ -91,6 +91,17 @@ remote_rm() {
   esac
 }
 
+chrome_running() { pgrep -x "Google Chrome" >/dev/null 2>&1; }
+
+# Espera o usuário fechar o Chrome (os bancos SQLite do perfil ficam inconsistentes com ele aberto).
+wait_chrome_closed() {
+  chrome_running || return 0
+  warn "o Google Chrome está aberto. Feche-o com Cmd+Q (não só a janela)."
+  until ! chrome_running; do
+    confirm "Chrome fechado?" || die "abortado"
+  done
+}
+
 make_workdir() {
   local d
   d="$(mktemp -d "${TMPDIR:-/tmp}/mac-migration.XXXXXX")"
