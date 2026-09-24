@@ -153,10 +153,11 @@ while IFS= read -r d; do
   info "varrendo ~/$d"
   # Repositórios git
   find "$d" -maxdepth "$DEV_MAX_DEPTH" \( "${SKIP_ARGS[@]}" -o -name .venv -o -name vendor \) -prune \
-       -o -type d -name .git -print -prune 2>/dev/null | while IFS= read -r g; do
+       -o -name .git \( -type d -o -type f \) -print -prune 2>/dev/null | while IFS= read -r g; do
     repo="${g%/.git}"
     remote="$(git -C "$repo" remote get-url origin 2>/dev/null || true)"
-    printf '%s\t%s\n' "$repo" "${remote:-<sem-remote>}" >> "$META/repos.tsv"
+    branch="$(git -C "$repo" symbolic-ref --short -q HEAD 2>/dev/null || true)"
+    printf '%s\t%s\t%s\n' "$repo" "${remote:-<sem-remote>}" "$branch" >> "$META/repos.tsv"
     probs=""
     if [ -n "$(git -C "$repo" status --porcelain 2>/dev/null | head -1)" ]; then probs="$probs mudanças-não-commitadas"; fi
     if [ -n "$(git -C "$repo" log --branches --not --remotes --oneline 2>/dev/null | head -1)" ]; then probs="$probs commits-não-enviados"; fi

@@ -132,6 +132,7 @@ Google/Chrome/SingletonCookie
 #   - avisa sobre mudanças não commitadas / commits não enviados
 DEV_DIRS='
 orca
+orca/workspaces/LettrLabs.AiHarness
 code
 dev
 projects

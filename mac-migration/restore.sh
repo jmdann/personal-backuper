@@ -242,12 +242,14 @@ if [ -s "$META/repos.tsv" ]; then
   cp "$META/repos.tsv" "$HOME/repos.migrated.tsv"
   if [ "$CLONE_REPOS" = 1 ]; then
     step "Clonando repositórios"
-    while IFS="$(printf '\t')" read -r path remote; do
+    while IFS="$(printf '\t')" read -r path remote branch; do
       [ "$remote" = "<sem-remote>" ] && { warn "sem remote: ~/$path"; continue; }
       if [ -d "$HOME/$path/.git" ]; then info "já existe: ~/$path"; continue; fi
       # O diretório pode já existir contendo só os .env restaurados.
       tmp="$HOME/$path.clone-$TS"
-      if git clone -q "$remote" "$tmp" </dev/null; then
+      # Clona na mesma branch do Mac antigo (ex.: worktrees); se ela não existir no remote, usa a padrão.
+      if { [ -n "$branch" ] && git clone -q -b "$branch" "$remote" "$tmp" </dev/null 2>/dev/null; } \
+         || { rm -rf "$tmp"; git clone -q "$remote" "$tmp" </dev/null; }; then
         if [ -d "$HOME/$path" ]; then
           tar -C "$HOME/$path" -cf - . | tar -C "$tmp" -xf -
           rm -rf "${HOME:?}/$path"
