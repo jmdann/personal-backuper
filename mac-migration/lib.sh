@@ -95,11 +95,20 @@ app_running() { pgrep -x "$1" >/dev/null 2>&1; }
 
 # Espera o usuário fechar um app (os dados dele ficam inconsistentes se copiados com ele aberto).
 wait_app_closed() { # <nome-do-processo>
+  local i
   app_running "$1" || return 0
-  warn "o $1 está aberto. Feche-o com Cmd+Q (não só a janela)."
-  until ! app_running "$1"; do
-    confirm "$1 fechado?" || die "abortado"
+  warn "o $1 está aberto e precisa ser fechado."
+  while app_running "$1"; do
+    confirm "Fechar o $1 agora?" || die "abortado. Feche o $1 e rode de novo."
+    osascript -e "quit app \"$1\"" >/dev/null 2>&1 || true
+    i=0
+    while app_running "$1" && [ "$i" -lt 15 ]; do sleep 1; i=$((i + 1)); done
+    if app_running "$1"; then
+      warn "o $1 continua rodando. Feche janelas com alterações não salvas e tente de novo."
+      [ "$1" = "Google Chrome" ] && warn "Se persistir: Chrome > Ajustes > Sistema > desligue 'Continuar executando apps em segundo plano'."
+    fi
   done
+  ok "$1 fechado"
 }
 wait_chrome_closed() { wait_app_closed "Google Chrome"; }
 

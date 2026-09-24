@@ -57,7 +57,13 @@ step "Inventário do sistema"
 
 if have brew; then
   info "Brewfile (fórmulas, casks, taps, apps da App Store via mas, extensões do VS Code)..."
-  brew bundle dump --force --describe --file="$META/Brewfile" >/dev/null && ok "Brewfile"
+  # Versões novas do Homebrew não aceitam mais --describe.
+  if brew bundle dump --force --describe --file="$META/Brewfile" >/dev/null 2>&1 \
+     || brew bundle dump --force --file="$META/Brewfile" >/dev/null; then
+    ok "Brewfile ($(grep -cE '^(brew|cask|mas|vscode) ' "$META/Brewfile") itens)"
+  else
+    warn "não consegui gerar o Brewfile; os apps não serão reinstalados automaticamente"
+  fi
 else
   warn "Homebrew não encontrado; pulando Brewfile"
 fi
@@ -205,6 +211,7 @@ if [ "$CHROME_PROFILES" = 1 ] && [ -d "$HOME/$CHROME_DIR" ]; then
   # Sem levar a chave, eles não abrem no Mac novo.
   if have security; then
     info "o macOS vai pedir acesso ao item 'Chrome Safe Storage' do Keychain: digite sua senha e clique em Permitir"
+    info "(se a janela não aparecer, ela pode estar atrás das outras janelas)"
     if key="$(security find-generic-password -w -s 'Chrome Safe Storage' -a 'Chrome' 2>/dev/null)"; then
       (umask 077; printf '%s' "$key" > "$META/chrome-safe-storage.key")
       ok "chave do Chrome Safe Storage"
@@ -250,6 +257,8 @@ if [ -d "$HOME/$ORCA_DIR" ] || [ -d "$HOME/.orca" ]; then
   wait_app_closed Orca
   # Como o Chrome, o Orca (Electron) criptografa credenciais com uma chave do Keychain.
   if have security; then
+    info "procurando a chave 'Orca Safe Storage' no Keychain..."
+    info "(se o macOS abrir uma janela pedindo senha, ela pode estar atrás das outras janelas)"
     acct="$(security find-generic-password -s 'Orca Safe Storage' 2>/dev/null | sed -n 's/.*"acct"<blob>="\(.*\)"$/\1/p')"
     if [ -n "$acct" ]; then
       info "o macOS vai pedir acesso ao item 'Orca Safe Storage' do Keychain: digite sua senha e clique em Permitir"
@@ -262,7 +271,8 @@ if [ -d "$HOME/$ORCA_DIR" ] || [ -d "$HOME/.orca" ]; then
       unset key
     fi
   fi
-  ok "configurações do Orca ($(du -sh "$HOME/$ORCA_DIR" 2>/dev/null | awk '{print $1}') em Application Support, antes de excluir caches)"
+  [ -n "${acct:-}" ] || info "o Orca não tem chave no Keychain (nada a levar)"
+  ok "configurações do Orca"
 fi
 
 step "Segredos e dotfiles"
