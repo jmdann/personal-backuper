@@ -55,6 +55,10 @@ HOME_PATHS='
 .config/ghostty
 .wezterm.lua
 .claude-switch
+.orca
+.config/orca
+Library/Application Support/Orca
+Library/Application Support/orca
 .claude/settings.json
 .claude/CLAUDE.md
 .claude/commands
@@ -154,6 +158,12 @@ orca/happyCaseStudy
 orca/test-thomsonreuters
 orca/AgentGrade
 '
+
+# Leva também os arquivos soltos e as pastas ocultas na raiz de cada DEV_DIR que não
+# é um repositório (ex.: ~/orca/.env, ~/orca/orca.json, ~/orca/.claude). Itens acima de
+# DEV_ROOT_MAX_MB ficam de fora com aviso. Use 0 para desligar.
+DEV_ROOT_CONFIG="${DEV_ROOT_CONFIG:-1}"
+DEV_ROOT_MAX_MB="${DEV_ROOT_MAX_MB:-100}"
 
 # Profundidade máxima de busca dentro de DEV_DIRS.
 DEV_MAX_DEPTH="${DEV_MAX_DEPTH:-5}"

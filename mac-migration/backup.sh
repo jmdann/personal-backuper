@@ -170,11 +170,24 @@ while IFS= read -r d; do
        \( "${SKIP_ARGS[@]}" -o -name .git -o -name .venv -o -name venv -o -name vendor -o -name .terraform \) -prune \
        -o -type f \( -name '.env' -o -name '.env.*' -o -name '*.env' -o -name '.envrc' \) \
        ! -name '*.example' ! -name '*.sample' ! -name '*.template' -print 2>/dev/null >> "$LIST"
+  # Configuração na raiz da pasta de projetos (arquivos soltos e pastas ocultas).
+  if [ "$DEV_ROOT_CONFIG" = 1 ] && [ ! -e "$d/.git" ]; then
+    find "$d" -mindepth 1 -maxdepth 1 \( -type f -o -type l -o \( -type d -name '.*' \) \) \
+         ! -name .DS_Store ! -name .git ! -name .Trash ! -name '.localized' 2>/dev/null \
+    | while IFS= read -r item; do
+        kb="$(du -sk "$item" 2>/dev/null | awk '{print $1}')"
+        if [ "${kb:-0}" -gt $((DEV_ROOT_MAX_MB * 1024)) ]; then
+          warn "grande demais, fora do backup: ~/$item ($((kb / 1024)) MB)"
+        else
+          echo "$item"
+        fi
+      done >> "$LIST"
+  fi
 done <<EOF_DIRS
 $(lines "$DEV_DIRS")
 EOF_DIRS
 cd - >/dev/null
-ok "$(wc -l < "$META/repos.tsv" | tr -d ' ') repositórios, $(wc -l < "$LIST" | tr -d ' ') arquivos .env"
+ok "$(wc -l < "$META/repos.tsv" | tr -d ' ') repositórios, $(wc -l < "$LIST" | tr -d ' ') arquivos (.env e configs)"
 
 if [ -s "$META/git-warnings.txt" ]; then
   warn "repositórios com trabalho que NÃO está no remote (não serão copiados, só o .env):"
