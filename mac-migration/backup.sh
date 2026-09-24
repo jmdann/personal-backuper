@@ -242,6 +242,13 @@ for r in $REFS; do
   [ -e "$HOME/$r" ] || continue
   grep -qxF "$r" "$LIST" && continue
   grep -q "^$r/" "$LIST" && continue
+  kb="$(du -sk "$HOME/$r" 2>/dev/null | awk '{print $1}')"
+  if [ "${kb:-0}" -gt 1048576 ]; then
+    warn "A pasta ~/$r é citada nos seus dotfiles, mas tem $((kb / 1048576)) GB: grande demais para este backup."
+    warn "Se for uma pasta de projetos, adicione '$r' em DEV_DIRS no config.sh (os repositórios"
+    warn "são re-clonados e os .env copiados). Se não, copie-a por disco externo."
+    continue
+  fi
   if confirm "Seus dotfiles usam ~/$r ($(du -sh "$HOME/$r" 2>/dev/null | awk '{print $1}')), que não está no backup. Incluir?"; then
     echo "$r" >> "$LIST"
   else

@@ -96,6 +96,13 @@ EXCLUDES='
 .kube/cache
 .kube/http-cache
 .DS_Store
+node_modules
+.venv
+__pycache__
+.next
+.turbo
+.pnpm-store
+DerivedData
 Google/Chrome/*/Cache
 Google/Chrome/*/Code Cache
 Google/Chrome/*/GPUCache
@@ -124,6 +131,7 @@ Google/Chrome/SingletonCookie
 #   - lista os repositórios git (caminho + remote) para re-clonar no Mac novo
 #   - avisa sobre mudanças não commitadas / commits não enviados
 DEV_DIRS='
+orca
 code
 dev
 projects
