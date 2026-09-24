@@ -149,6 +149,25 @@ if [ "$SKIP_BREW" = 0 ] && [ -f "$META/Brewfile" ] && have brew; then
   cp "$META/Brewfile" "$HOME/Brewfile.migrated"
 fi
 
+if [ -d "$HOME/Library/Application Support/Google/Chrome" ] || [ -s "$META/chrome-extensions.tsv" ]; then
+  step "Extensões do Chrome"
+  # Chrome instala pela Web Store qualquer id com um JSON nesta pasta, e pede para ativar.
+  EXT_DIR="$HOME/Library/Application Support/Google/Chrome/External Extensions"
+  mkdir -p "$EXT_DIR"
+  while read -r id label; do
+    [ -n "$id" ] || continue
+    printf '{ "external_update_url": "https://clients2.google.com/service/update2/crx" }\n' > "$EXT_DIR/$id.json"
+    ok "${label:-$id} será instalada ao abrir o Chrome"
+  done <<EOF_EXT
+$(lines "$CHROME_ESSENTIAL_EXTENSIONS")
+EOF_EXT
+  if [ -s "$META/chrome-extensions.tsv" ]; then
+    awk -F'\t' '{ printf "%s\t%s\thttps://chromewebstore.google.com/detail/%s\n", $1, $3, $2 }' \
+      "$META/chrome-extensions.tsv" > "$HOME/chrome-extensions.migrated.tsv"
+    info "lista de todas as extensões (com link da Web Store): ~/chrome-extensions.migrated.tsv"
+  fi
+fi
+
 step "Ferramentas de linguagem"
 install_list() { # <arquivo> <comando...>
   local file="$1"; shift
@@ -219,6 +238,7 @@ fi
 step "Pronto"
 cat <<MSG
 Próximos passos manuais:
+  - 1Password: entre com e-mail, senha e Secret Key (está no Emergency Kit) no app e na extensão
   - ssh-add --apple-use-keychain ~/.ssh/<sua-chave>   (e teste: ssh -T git@github.com)
   - Abra um novo terminal para carregar os dotfiles
   - Confira apps fora do Homebrew e faça login neles: ~/applications.migrated.txt

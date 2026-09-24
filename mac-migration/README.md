@@ -24,12 +24,20 @@ antes de irem para o **iCloud Drive** (padrão), um disco externo ou um bucket S
   Também leva a chave `Chrome Safe Storage` do Keychain, para que **senhas e cookies salvos localmente** abram no Mac novo.
   O macOS pede sua senha para liberar essa chave no backup. Os dois scripts pedem para fechar o Chrome (Cmd+Q) antes.
   Para desligar: `CHROME_PROFILES=0 ./backup.sh`.
+- **Extensões do Chrome:** vão com os perfis. Além disso, as de `CHROME_ESSENTIAL_EXTENSIONS` no `config.sh`
+  (por padrão o **1Password**) são instaladas pela Chrome Web Store no Mac novo mesmo se a cópia do perfil falhar;
+  o Chrome pede para ativá-las. A lista completa, com links, fica em `~/chrome-extensions.migrated.tsv`.
+- **App do 1Password:** se estiver em `/Applications` mas não veio do Homebrew, entra no `Brewfile` mesmo assim.
+- **App Senhas / iCloud Keychain:** não vai no arquivo; sincroniza pelo iCloud. O backup verifica se a
+  sincronização está ativa e avisa se não estiver.
 - **Repositórios git:** lista caminho + remote para re-clonar no mesmo lugar (`--clone-repos`).
   O backup **avisa** sobre repositórios com mudanças não commitadas, commits não enviados ou stash e pede confirmação.
 
 ### O que NÃO é migrado (faça à parte)
 
-- **Keychain / senhas:** use iCloud Keychain ou seu gerenciador de senhas (exceto a chave do Chrome, citada acima).
+- **Keychain / senhas:** vêm pelo iCloud Keychain (ative "Senhas" no iCloud dos dois Macs); a única exceção é a chave do Chrome, citada acima.
+- **Cofres do 1Password:** ficam na nuvem da 1Password. No Mac novo, entre com e-mail, senha e **Secret Key**
+  (está no Emergency Kit) — tenha-a em mãos antes de formatar o Mac antigo.
 - **Chrome:** alguns sites (principalmente Google) podem pedir login de novo, porque amarram a sessão ao
   aparelho. Se você usa a sincronização do Chrome com a conta Google, ela continua sendo a garantia principal.
 - **Documentos, fotos, arquivos grandes:** iCloud Drive, Assistente de Migração ou disco externo.

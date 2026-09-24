@@ -76,6 +76,13 @@ EXTRA_PATHS='
 CHROME_PROFILES="${CHROME_PROFILES:-1}"
 CHROME_DIR='Library/Application Support/Google/Chrome'
 
+# Extensões que o restore garante instalar pela Chrome Web Store, mesmo que a cópia
+# do perfil falhe (formato: <id> <comentário>). O Chrome pede para ativar cada uma
+# em cada perfil. O id aparece na URL da extensão na Chrome Web Store.
+CHROME_ESSENTIAL_EXTENSIONS='
+aeblfdkhhhdcdjpifhhbdiojplfjncoa 1Password
+'
+
 # Padrões excluídos do arquivo (sockets, caches, logs).
 EXCLUDES='
 *.sock

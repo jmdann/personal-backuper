@@ -61,6 +61,17 @@ else
   warn "Homebrew não encontrado; pulando Brewfile"
 fi
 
+# Apps instalados fora do Homebrew que valem garantir no Mac novo.
+if [ -f "$META/Brewfile" ]; then
+  for pair in "1Password.app:1password" "1Password 7.app:1password@7"; do
+    app="${pair%%:*}"; cask="${pair#*:}"
+    if [ -d "/Applications/$app" ] && ! grep -q "^cask \"$cask\"" "$META/Brewfile"; then
+      printf 'cask "%s"\n' "$cask" >> "$META/Brewfile"
+      ok "$app adicionado ao Brewfile"
+    fi
+  done
+fi
+
 ls -1 /Applications > "$META/applications.txt" 2>/dev/null || true
 ls -1 "$HOME/Applications" >> "$META/applications.txt" 2>/dev/null || true
 ok "lista de /Applications (para conferir apps instalados fora do Homebrew)"
@@ -83,6 +94,26 @@ if have defaults; then
     defaults export "$d" "$META/defaults/$d.plist" 2>/dev/null || true
   done
   ok "preferências do macOS (defaults)"
+fi
+
+# Senhas do app Senhas / iCloud Keychain: não saem num arquivo, sincronizam pelo iCloud.
+MMA="$HOME/Library/Preferences/MobileMeAccounts.plist"
+if [ -f "$MMA" ] && have plutil && have python3; then
+  kc="$(plutil -convert json -o - "$MMA" 2>/dev/null | python3 -c '
+import json, sys
+try:
+    accts = json.load(sys.stdin).get("Accounts", [])
+    on = any(s.get("Name") == "KEYCHAIN_SYNC" and s.get("Enabled") for a in accts for s in a.get("Services", []))
+    print("on" if on else "off")
+except Exception:
+    print("?")' || echo '?')"
+  case "$kc" in
+    on)  ok "iCloud Keychain ativo: as senhas do app Senhas vão aparecer sozinhas no Mac novo" ;;
+    off) warn "iCloud Keychain DESLIGADO: as senhas do app Senhas não vão para o Mac novo."
+         warn "Ative em Ajustes do Sistema > [seu nome] > iCloud > Senhas (ou exporte no app Senhas)."
+         confirm "Continuar mesmo assim?" || die "abortado" ;;
+    *)   info "não consegui verificar o iCloud Keychain; confira em Ajustes do Sistema > [seu nome] > iCloud > Senhas" ;;
+  esac
 fi
 
 # ---------------------------------------------------------------------------
@@ -154,6 +185,35 @@ if [ "$CHROME_PROFILES" = 1 ] && [ -d "$HOME/$CHROME_DIR" ]; then
       warn "sem acesso à chave; no Mac novo senhas e cookies locais do Chrome não serão recuperados"
     fi
     unset key
+  fi
+  # Inventário das extensões de cada perfil (perfil, id, nome).
+  if have python3; then
+    python3 - "$HOME/$CHROME_DIR" > "$META/chrome-extensions.tsv" <<'PYEXT' || true
+import json, os, sys
+root = sys.argv[1]
+def load(p):
+    try:
+        with open(p, encoding="utf-8-sig") as f: return json.load(f)
+    except Exception: return {}
+names = load(os.path.join(root, "Local State")).get("profile", {}).get("info_cache", {})
+for prof in sorted(os.listdir(root)):
+    ext_dir = os.path.join(root, prof, "Extensions")
+    if not os.path.isdir(ext_dir): continue
+    pname = names.get(prof, {}).get("name", prof)
+    for eid in sorted(os.listdir(ext_dir)):
+        vers = sorted(v for v in os.listdir(os.path.join(ext_dir, eid)) if not v.startswith("."))
+        if not vers: continue
+        base = os.path.join(ext_dir, eid, vers[-1])
+        name = load(os.path.join(base, "manifest.json")).get("name", eid)
+        if name.startswith("__MSG_"):
+            key = name[6:-2]
+            for loc in ("pt_BR", "en", "en_US"):
+                msgs = {k.lower(): v for k, v in load(os.path.join(base, "_locales", loc, "messages.json")).items()}
+                if key.lower() in msgs:
+                    name = msgs[key.lower()].get("message", name); break
+        print(f"{pname}\t{eid}\t{name}")
+PYEXT
+    ok "extensões: $(cut -f2 "$META/chrome-extensions.tsv" | sort -u | wc -l | tr -d ' ') (lista em chrome-extensions.tsv)"
   fi
   ok "perfis: $(find "$HOME/$CHROME_DIR" -maxdepth 2 -name Preferences -path '*/*/Preferences' | wc -l | tr -d ' ')"
 fi
