@@ -105,15 +105,28 @@ if grep -qxF 'Library/Application Support/Google/Chrome' "$META/files.txt"; then
 fi
 
 step "Restaurando segredos e dotfiles em $HOME"
+# Guarda uma cópia do que já existe. O macOS pode negar alguns arquivos (atributos
+# protegidos, privacidade): nesse caso avisa e segue, sem abortar a restauração.
 tar -tf "$BUNDLE/home.tar" | while IFS= read -r f; do
   case "$f" in */) continue ;; esac
   if [ -f "$HOME/$f" ] || [ -L "$HOME/$f" ]; then
-    mkdir -p "$PREV/$(dirname "$f")"
-    cp -p "$HOME/$f" "$PREV/$f"
+    mkdir -p "$PREV/$(dirname "$f")" 2>/dev/null || true
+    if ! cp -p "$HOME/$f" "$PREV/$f" 2>/dev/null && ! cp "$HOME/$f" "$PREV/$f" 2>/dev/null; then
+      warn "sem cópia prévia (acesso negado pelo macOS): ~/$f"
+    fi
   fi
 done
 [ -d "$PREV" ] && warn "arquivos já existentes foram copiados para $PREV antes de sobrescrever"
-tar -C "$HOME" -xpf "$BUNDLE/home.tar"
+
+# Sem -p: não tenta recriar ACLs, flags e atributos estendidos do Mac antigo, que o
+# macOS costuma recusar com "Operation not permitted". As permissões são ajustadas abaixo.
+if ! tar -C "$HOME" -xf "$BUNDLE/home.tar" 2> "$WORK/tar-errors.txt"; then
+  warn "alguns arquivos não puderam ser restaurados:"
+  sed 's/^/      /' "$WORK/tar-errors.txt" >&2
+  warn "se forem importantes, dê Acesso Total ao Disco ao Terminal (Ajustes do Sistema >"
+  warn "Privacidade e Segurança > Acesso Total ao Disco), reabra o Terminal e rode:"
+  warn "    ./restore.sh --skip-brew"
+fi
 ok "$(wc -l < "$META/files.txt" | tr -d ' ') itens restaurados"
 
 info "ajustando permissões"
@@ -215,7 +228,7 @@ if [ -s "$META/repos.tsv" ]; then
       tmp="$HOME/$path.clone-$TS"
       if git clone -q "$remote" "$tmp" </dev/null; then
         if [ -d "$HOME/$path" ]; then
-          tar -C "$HOME/$path" -cf - . | tar -C "$tmp" -xpf -
+          tar -C "$HOME/$path" -cf - . | tar -C "$tmp" -xf -
           rm -rf "${HOME:?}/$path"
         fi
         mkdir -p "$(dirname "$HOME/$path")"
